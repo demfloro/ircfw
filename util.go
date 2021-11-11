@@ -6,6 +6,10 @@ import (
 	"unicode/utf8"
 )
 
+const (
+	RecursionLimit = 1000
+)
+
 func isUTF8(data []byte) bool {
 	return !strings.ContainsRune(string(data), utf8.RuneError)
 }
@@ -22,7 +26,7 @@ func safeClose(c chan struct{}) {
 func splitByLen(line string, limit int, depth uint) (result []string) {
 	var color = NoColor
 	depth++
-	if depth == 1000 {
+	if depth == RecursionLimit {
 		return
 	}
 	if limit == 0 || len(line) == 0 {
