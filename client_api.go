@@ -125,7 +125,8 @@ func NewClient(ctx context.Context, nick string, ident string, realName string, 
 		handler:      handler,
 		quit:         cancel,
 	}
-	c.wg.Add(3)
+	c.wg.Add(4)
+	go c.serveLoop(ctx)
 	go c.serveLoop(ctx)
 	go c.writeLoop(ctx)
 	go c.readLoop(ctx)

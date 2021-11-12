@@ -9,10 +9,8 @@ import (
 
 type handler func(message)
 
-// Meant to run in separate goroutine
-func (c *Client) serveLoop(ctx context.Context) {
-	defer c.wg.Done()
-	handlers := map[string]handler{
+var (
+	handlers = map[string]handler{
 		"PING":    handlePing,
 		"PRIVMSG": handlePrivmsg,
 		"NOTICE":  handleNotice,
@@ -35,6 +33,11 @@ func (c *Client) serveLoop(ctx context.Context) {
 		"396":     handleHostname,
 		"473":     handleJoinError,
 	}
+)
+
+// Meant to run in separate goroutine
+func (c *Client) serveLoop(ctx context.Context) {
+	defer c.wg.Done()
 
 	for {
 		select {
@@ -95,7 +98,10 @@ func logHandler(msg message) {
 
 func handleMOTD(msg message) {
 	motd := strings.TrimSpace(strings.Join(msg.Params()[1:], " "))
-	msg.Client().motd = append(msg.Client().motd, motd)
+	client := msg.Client()
+	client.Lock()
+	client.motd = append(msg.Client().motd, motd)
+	client.Unlock()
 }
 
 func handleWelcome(msg message) {
