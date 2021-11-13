@@ -144,8 +144,6 @@ func handleMode(msg message) {
 func handleHostname(msg message) {
 	hostname := msg.Params()[1]
 	msg.Client().setHostname(hostname)
-	client := msg.Client()
-	safeClose(client.started)
 }
 
 func handleNotice(msg message) {
@@ -210,6 +208,8 @@ func handleError(msg message) {
 
 func handleISupport(msg message) {
 	client := msg.Client()
+	// Allow to JOIN channels
+	safeClose(client.started)
 	client.Lock()
 	defer client.Unlock()
 	for _, param := range msg.Params() {
