@@ -26,6 +26,7 @@ func (c *Client) Quit(reason string) {
 		delete(c.channels, name)
 	}
 	c.Unlock()
+	safeClose(c.started)
 	c.private.kill()
 	c.quit()
 }
@@ -38,6 +39,8 @@ func (c *Client) Join(ctx context.Context, chanName string) (*Channel, error) {
 	if channel := c.fetchChannel(chanName); channel != nil && channel.isStarted() {
 		return channel, nil
 	}
+	// Stall until initial message exchange with server finishes
+	// without this client tries to join too early and server rejects it
 	select {
 	case <-c.started:
 	}
