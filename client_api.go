@@ -38,6 +38,9 @@ func (c *Client) Join(ctx context.Context, chanName string) (*Channel, error) {
 	if channel := c.fetchChannel(chanName); channel != nil && channel.isStarted() {
 		return channel, nil
 	}
+	select {
+	case <-c.started:
+	}
 	return c.joinChannel(ctx, chanName)
 }
 
@@ -123,6 +126,7 @@ func NewClient(ctx context.Context, nick string, ident string, realName string, 
 		params:       make(map[string]string),
 		charmap:      charmap,
 		handler:      handler,
+		started:      make(chan struct{}),
 		quit:         cancel,
 	}
 	c.wg.Add(4)

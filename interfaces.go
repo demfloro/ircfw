@@ -40,6 +40,7 @@ type Client struct {
 	handler              MsgHandler
 	charmap              *charmap.Charmap
 	params               map[string]string
+	started              chan struct{}
 	quit                 context.CancelFunc
 }
 

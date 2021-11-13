@@ -144,6 +144,8 @@ func handleMode(msg message) {
 func handleHostname(msg message) {
 	hostname := msg.Params()[1]
 	msg.Client().setHostname(hostname)
+	client := msg.Client()
+	safeClose(client.started)
 }
 
 func handleNotice(msg message) {
