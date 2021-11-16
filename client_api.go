@@ -95,7 +95,7 @@ func (c *Client) sendMessageContext(ctx context.Context, cmd string, params []st
 
 func (c *Client) Whois(nick string) {
 	if err := validateNick(nick); err != nil {
-		c.Debug("Whoising %q: %#v", nick, err)
+		c.Debug("Whoising %q: %w", nick, err)
 		return
 	}
 	c.sendMessage("WHOIS", []string{nick})

@@ -19,7 +19,7 @@ func (c *Client) writeLoop(ctx context.Context) {
 				return
 			}
 			raw := msg.Export()
-			c.Debug("wrote raw: %#v", string(raw))
+			c.Debug("wrote raw: %q", string(raw))
 			c.socket.Write(raw)
 		}
 	}
@@ -33,10 +33,10 @@ func (c *Client) readLoop(ctx context.Context) {
 	in.Split(scanMsg)
 	for in.Scan() {
 		line := in.Bytes()
-		c.Debug("read raw: %#v", string(line))
+		c.Debug("read raw: %q", string(line))
 		msg, err := parseMessage(line, c)
 		if err != nil {
-			c.Logf("Failed to parse: %v, err: %w", line, err)
+			c.Logf("Failed to parse: %q, err: %w", line, err)
 			continue
 		}
 		select {
