@@ -2,6 +2,7 @@ package ircfw
 
 import (
 	"testing"
+	"time"
 )
 
 func TestParseParams(t *testing.T) {
@@ -118,7 +119,7 @@ func TestParseMsg(t *testing.T) {
 	}
 	for i, sample := range samples {
 		valid := valids[i]
-		msg, err := parseUTF8Message([]byte(sample), nil)
+		msg, err := parseUTF8Message([]byte(sample), time.Time{}, nil)
 		if err != nil {
 			t.Fatalf("Failed to parse: %#v, err: %#v", sample, err)
 		}

@@ -8,7 +8,12 @@ import (
 type bytemessage struct {
 	prefix, cmd []byte
 	params      [][]byte
+	deadline    time.Time
 	client      *Client
+}
+
+func (m bytemessage) Deadline() time.Time {
+	return m.deadline
 }
 
 func parseByteParams(line []byte) (result [][]byte) {
@@ -31,7 +36,7 @@ func parseByteParams(line []byte) (result [][]byte) {
 	return
 }
 
-func parseByteMessage(line []byte, client *Client) (msg message, err error) {
+func parseByteMessage(line []byte, deadline time.Time, client *Client) (msg message, err error) {
 	if err = validate(decode(line, client.charmap)); err != nil {
 		return
 	}
@@ -46,10 +51,11 @@ func parseByteMessage(line []byte, client *Client) (msg message, err error) {
 		params = parseByteParams(line)
 	}
 	msg = bytemessage{
-		prefix: prefix,
-		cmd:    cmd,
-		params: params,
-		client: client,
+		prefix:   prefix,
+		cmd:      cmd,
+		params:   params,
+		deadline: deadline,
+		client:   client,
 	}
 	return
 }
@@ -92,20 +98,22 @@ func (m bytemessage) Msg() Msg {
 		channel = m.client.private
 	}
 	return ircMsg{
-		time:    time.Now(),
-		prefix:  m.Prefix(),
-		text:    []string{decode(bytes.TrimSpace(m.params[1]), m.client.charmap)},
-		channel: channel,
-		client:  m.client,
-		utf8:    false,
+		time:     time.Now(),
+		deadline: m.deadline,
+		prefix:   m.Prefix(),
+		text:     []string{decode(bytes.TrimSpace(m.params[1]), m.client.charmap)},
+		channel:  channel,
+		client:   m.client,
+		utf8:     false,
 	}
 }
 
-func newByteMessage(cmd []byte, params [][]byte, client *Client) message {
+func newByteMessage(cmd []byte, params [][]byte, deadline time.Time, client *Client) message {
 	return bytemessage{
-		cmd:    cmd,
-		params: params,
-		client: client,
+		cmd:      cmd,
+		params:   params,
+		deadline: deadline,
+		client:   client,
 	}
 }
 

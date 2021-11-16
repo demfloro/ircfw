@@ -85,10 +85,14 @@ func (c *Client) sendMessageContext(ctx context.Context, cmd string, params []st
 	for _, param := range params {
 		bparams = append(bparams, []byte(param))
 	}
+	deadline, ok := ctx.Deadline()
+	if !ok {
+		deadline = time.Time{}
+	}
 	select {
 	case <-ctx.Done():
 		return
-	case c.writes <- newMessage([]byte(cmd), bparams, c):
+	case c.writes <- newMessage([]byte(cmd), bparams, deadline, c):
 		return
 	}
 }

@@ -8,21 +8,23 @@ import (
 )
 
 type ircMsg struct {
-	time    time.Time
-	prefix  string
-	text    []string
-	channel *Channel
-	client  *Client
-	utf8    bool
+	time     time.Time
+	deadline time.Time
+	prefix   string
+	text     []string
+	channel  *Channel
+	client   *Client
+	utf8     bool
 }
 
-func NewIRCMsg(text []string, channel *Channel, client *Client, utf8 bool) Msg {
+func NewIRCMsg(text []string, channel *Channel, client *Client, utf8 bool, deadline time.Time) Msg {
 	return ircMsg{
-		time:    time.Now(),
-		text:    text,
-		channel: channel,
-		client:  client,
-		utf8:    utf8,
+		time:     time.Now(),
+		deadline: time.Time{},
+		text:     text,
+		channel:  channel,
+		client:   client,
+		utf8:     utf8,
 	}
 }
 
@@ -76,13 +78,18 @@ func (m ircMsg) IsPrivate() bool {
 }
 
 func (m ircMsg) Reply(ctx context.Context, text []string) {
+	deadline, ok := ctx.Deadline()
+	if !ok {
+		deadline = time.Time{}
+	}
 	msg := ircMsg{
-		time:    time.Now(),
-		prefix:  m.Prefix(),
-		text:    text,
-		channel: m.channel,
-		client:  m.client,
-		utf8:    m.utf8,
+		time:     time.Now(),
+		deadline: deadline,
+		prefix:   m.Prefix(),
+		text:     text,
+		channel:  m.channel,
+		client:   m.client,
+		utf8:     m.utf8,
 	}
 	select {
 	case <-ctx.Done():
@@ -103,11 +110,11 @@ func (m ircMsg) Messages() (messages []message) {
 	}
 	if !m.utf8 || m.client.charmap != nil {
 		for _, line := range m.WrappedText() {
-			messages = append(messages, newMessage([]byte("PRIVMSG"), [][]byte{[]byte(chanName), encode(line, m.client.charmap)}, m.client))
+			messages = append(messages, newMessage([]byte("PRIVMSG"), [][]byte{[]byte(chanName), encode(line, m.client.charmap)}, m.deadline, m.client))
 		}
 	} else {
 		for _, line := range m.WrappedText() {
-			messages = append(messages, newMessage([]byte("PRIVMSG"), [][]byte{[]byte(chanName), []byte(line)}, m.client))
+			messages = append(messages, newMessage([]byte("PRIVMSG"), [][]byte{[]byte(chanName), []byte(line)}, m.deadline, m.client))
 		}
 	}
 	return

@@ -4,6 +4,7 @@ import (
 	"context"
 	"net"
 	"sync"
+	"time"
 
 	"golang.org/x/text/encoding/charmap"
 )
@@ -69,6 +70,7 @@ type message interface {
 	Export() []byte
 	Channel() *Channel
 	Client() *Client
+	Deadline() time.Time
 }
 
 // Logger should be safe to be used by several goroutines

@@ -4,10 +4,12 @@ import (
 	"bufio"
 	"context"
 	"fmt"
+	"time"
 )
 
 // Meant to run in separate goroutine
 func (c *Client) writeLoop(ctx context.Context) {
+	var zero time.Time
 	defer c.wg.Done()
 	for {
 		select {
@@ -18,9 +20,16 @@ func (c *Client) writeLoop(ctx context.Context) {
 				c.Debug("c.writes closed")
 				return
 			}
+			deadline := msg.Deadline()
 			raw := msg.Export()
-			c.Debug("wrote raw: %q", string(raw))
-			c.socket.Write(raw)
+			c.Debug("writing raw: %q", string(raw))
+			c.socket.SetWriteDeadline(deadline)
+			_, err := c.socket.Write(raw)
+			if err != nil {
+				c.err = err
+				c.quit()
+			}
+			c.socket.SetWriteDeadline(zero)
 		}
 	}
 }
@@ -34,7 +43,7 @@ func (c *Client) readLoop(ctx context.Context) {
 	for in.Scan() {
 		line := in.Bytes()
 		c.Debug("read raw: %q", string(line))
-		msg, err := parseMessage(line, c)
+		msg, err := parseMessage(line, time.Now(), c)
 		if err != nil {
 			c.Logf("Failed to parse: %q, err: %w", line, err)
 			continue

@@ -8,7 +8,12 @@ import (
 type utf8message struct {
 	prefix, cmd string
 	params      []string
+	deadline    time.Time
 	client      *Client
+}
+
+func (m utf8message) Deadline() time.Time {
+	return m.deadline
 }
 
 func parseParams(line string) (result []string) {
@@ -30,7 +35,7 @@ func parseParams(line string) (result []string) {
 	return
 }
 
-func parseUTF8Message(bytes []byte, client *Client) (msg message, err error) {
+func parseUTF8Message(bytes []byte, deadline time.Time, client *Client) (msg message, err error) {
 	line := string(bytes)
 	if err = validate(line); err != nil {
 		return
@@ -48,10 +53,11 @@ func parseUTF8Message(bytes []byte, client *Client) (msg message, err error) {
 		params = parseParams(line)
 	}
 	msg = utf8message{
-		prefix: prefix,
-		cmd:    cmd,
-		params: params,
-		client: client,
+		prefix:   prefix,
+		cmd:      cmd,
+		params:   params,
+		deadline: deadline,
+		client:   client,
 	}
 	return
 }
@@ -94,24 +100,26 @@ func (m utf8message) Msg() Msg {
 		channel = m.client.private
 	}
 	return ircMsg{
-		time:    time.Now(),
-		prefix:  m.Prefix(),
-		text:    []string{strings.TrimSpace(m.params[1])},
-		channel: channel,
-		client:  m.client,
-		utf8:    true,
+		time:     time.Now(),
+		deadline: m.deadline,
+		prefix:   m.Prefix(),
+		text:     []string{strings.TrimSpace(m.params[1])},
+		channel:  channel,
+		client:   m.client,
+		utf8:     true,
 	}
 }
 
-func newUTF8Message(cmd []byte, params [][]byte, client *Client) message {
+func newUTF8Message(cmd []byte, params [][]byte, deadline time.Time, client *Client) message {
 	var uparams []string
 	for _, param := range params {
 		uparams = append(uparams, string(param))
 	}
 	return utf8message{
-		cmd:    string(cmd),
-		params: uparams,
-		client: client,
+		cmd:      string(cmd),
+		params:   uparams,
+		deadline: deadline,
+		client:   client,
 	}
 }
 
