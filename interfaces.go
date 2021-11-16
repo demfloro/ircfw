@@ -41,6 +41,7 @@ type Client struct {
 	charmap              *charmap.Charmap
 	params               map[string]string
 	started              chan struct{}
+	err                  error
 	quit                 context.CancelFunc
 }
 

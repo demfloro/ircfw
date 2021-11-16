@@ -14,8 +14,12 @@ func (c *Client) Log(format string, params ...interface{}) {
 	c.logger.Print(fmt.Errorf(format, params...))
 }
 
-func (c *Client) Wait() {
+func (c *Client) Wait() error {
 	c.wg.Wait()
+	if c.err != nil {
+		return c.err
+	}
+	return nil
 }
 
 func (c *Client) Quit(reason string) {
