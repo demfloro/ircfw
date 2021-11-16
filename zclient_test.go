@@ -7,6 +7,7 @@ import (
 	"crypto/tls"
 	"errors"
 	"golang.org/x/text/encoding/charmap"
+	"log"
 	"log/syslog"
 	"testing"
 	"time"
@@ -54,12 +55,50 @@ func TestScanMsg(t *testing.T) {
 	}
 }
 
+type testLogger struct {
+	debug  bool
+	logger *log.Logger
+}
+
+func (t testLogger) Log(v ...interface{}) {
+	t.logger.Print(v...)
+}
+
+func (t testLogger) Logf(format string, v ...interface{}) {
+	t.logger.Printf(format, v...)
+}
+
+func (t testLogger) Debug(format string, v ...interface{}) {
+	if !t.debug {
+		return
+	}
+	t.logger.Printf(format, v...)
+}
+
+func newLogger(debug bool, logger *log.Logger) (out testLogger, err error) {
+	var level syslog.Priority
+	if debug {
+		level = syslog.LOG_DEBUG
+	} else {
+		level = syslog.LOG_ERR
+	}
+	if logger == nil {
+		logger, err = syslog.NewLogger(level, 0)
+		if err != nil {
+			return
+		}
+	}
+	out.debug = debug
+	out.logger = logger
+	return
+}
+
 func TestNewClient(t *testing.T) {
 	socket, err := tls.Dial(proto, server, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
-	logger, err := syslog.NewLogger(syslog.LOG_DEBUG, 0)
+	logger, err := newLogger(true, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -73,7 +112,7 @@ func TestNewClient(t *testing.T) {
 	_, err = client.Join(ctx, jchannel)
 	cancel()
 	if err != nil {
-		logger.Print(err)
+		logger.Log(err)
 	}
 	client.Wait()
 }

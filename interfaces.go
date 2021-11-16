@@ -2,7 +2,6 @@ package ircfw
 
 import (
 	"context"
-	"log"
 	"net"
 	"sync"
 
@@ -33,7 +32,7 @@ type Client struct {
 	motd                 []string
 	wg                   sync.WaitGroup
 	socket               net.Conn
-	logger               *log.Logger
+	logger               Logger
 	reads, writes        chan message
 	channels             map[string]*Channel
 	private              *Channel
@@ -53,7 +52,8 @@ type Msg interface {
 	Nick() string
 	Prefix() string
 	Messages() []message
-	Log(format string, params ...interface{})
+	Logf(format string, params ...interface{})
+	Debug(format string, params ...interface{})
 	Reply(ctx context.Context, text []string)
 	IsPrivate() bool
 }
@@ -69,4 +69,11 @@ type message interface {
 	Export() []byte
 	Channel() *Channel
 	Client() *Client
+}
+
+// Logger should be safe to be used by several goroutines
+type Logger interface {
+	Log(v ...interface{})
+	Logf(format string, v ...interface{})
+	Debug(format string, v ...interface{})
 }

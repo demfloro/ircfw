@@ -63,8 +63,12 @@ func (m ircMsg) Text() []string {
 	return m.text
 }
 
-func (m ircMsg) Log(format string, params ...interface{}) {
-	m.channel.Log(format, params...)
+func (m ircMsg) Logf(format string, params ...interface{}) {
+	m.channel.Logf(format, params...)
+}
+
+func (m ircMsg) Debug(format string, params ...interface{}) {
+	m.channel.Debug(format, params...)
 }
 
 func (m ircMsg) IsPrivate() bool {
@@ -82,7 +86,7 @@ func (m ircMsg) Reply(ctx context.Context, text []string) {
 	}
 	select {
 	case <-ctx.Done():
-		m.Log("reply timed out: %#v", msg)
+		m.Logf("reply timed out: %#v", msg)
 		return
 	case m.channel.send <- msg:
 	}

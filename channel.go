@@ -77,7 +77,7 @@ func (c *Channel) txLoop() {
 			return
 		case msg, open := <-c.send:
 			if !open {
-				c.Client().Log("%q send closed, killing loop", c.name)
+				c.Client().Debug("%q send closed, killing loop", c.name)
 				safeClose(c.quit)
 				return
 			}

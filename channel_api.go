@@ -2,7 +2,7 @@ package ircfw
 
 func (c *Channel) SetTopic(topic string) {
 	if c.name == "" {
-		c.Log("Attempt to set topic on private")
+		c.Debug("Attempt to set topic on private")
 		return
 	}
 	c.sendTopic(topic)
@@ -46,6 +46,10 @@ func (c *Channel) Part() {
 	close(c.quit)
 }
 
-func (c *Channel) Log(format string, params ...interface{}) {
-	c.client.Log(format, params...)
+func (c *Channel) Logf(format string, params ...interface{}) {
+	c.client.Logf(format, params...)
+}
+
+func (c *Channel) Debug(format string, params ...interface{}) {
+	c.client.Debug(format, params...)
 }

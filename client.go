@@ -15,10 +15,11 @@ func (c *Client) writeLoop(ctx context.Context) {
 			return
 		case msg, open := <-c.writes:
 			if !open {
-				c.Log("c.writes closed")
+				c.Debug("c.writes closed")
 				return
 			}
 			raw := msg.Export()
+			c.Debug("wrote raw: %#v", string(raw))
 			c.socket.Write(raw)
 		}
 	}
@@ -32,9 +33,10 @@ func (c *Client) readLoop(ctx context.Context) {
 	in.Split(scanMsg)
 	for in.Scan() {
 		line := in.Bytes()
+		c.Debug("read raw: %#v", string(line))
 		msg, err := parseMessage(line, c)
 		if err != nil {
-			c.Log("Failed to parse: %v, err: %w", line, err)
+			c.Logf("Failed to parse: %v, err: %w", line, err)
 			continue
 		}
 		select {
@@ -44,7 +46,7 @@ func (c *Client) readLoop(ctx context.Context) {
 		}
 	}
 	if err := in.Err(); err != nil {
-		c.Log("Error in readLoop: %w", err)
+		c.Debug("Error in readLoop: %w", err)
 		return
 	}
 }
@@ -79,7 +81,7 @@ func (c *Client) createChannel(chanName string) *Channel {
 	c.Lock()
 	defer c.Unlock()
 	if channel := c.fetchChannel(chanName); channel != nil {
-		c.Log("Duplicate attempt to create channel %q", chanName)
+		c.Debug("Duplicate attempt to create channel %q", chanName)
 		return channel
 	}
 	channel := newChannel(chanName, c)

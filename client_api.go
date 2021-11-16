@@ -3,15 +3,18 @@ package ircfw
 import (
 	"context"
 	"fmt"
-	"log"
 	"net"
 	"time"
 
 	"golang.org/x/text/encoding/charmap"
 )
 
-func (c *Client) Log(format string, params ...interface{}) {
-	c.logger.Print(fmt.Errorf(format, params...))
+func (c *Client) Debug(format string, params ...interface{}) {
+	c.logger.Debug(format, params...)
+}
+
+func (c *Client) Logf(format string, params ...interface{}) {
+	c.logger.Logf(format, params...)
 }
 
 func (c *Client) Wait() error {
@@ -65,7 +68,7 @@ func (c *Client) Nick() string {
 func (c *Client) SetNick(nick string) {
 	err := validateNick(nick)
 	if err != nil {
-		c.Log("Attempt to set invalid nick: %q", nick)
+		c.Debug("Attempt to set invalid nick: %q", nick)
 		return
 	}
 	c.sendNick(nick)
@@ -92,7 +95,7 @@ func (c *Client) sendMessageContext(ctx context.Context, cmd string, params []st
 
 func (c *Client) Whois(nick string) {
 	if err := validateNick(nick); err != nil {
-		c.Log("Whoising %q: %#v", nick, err)
+		c.Debug("Whoising %q: %#v", nick, err)
 		return
 	}
 	c.sendMessage("WHOIS", []string{nick})
@@ -120,7 +123,7 @@ func (c *Client) UpdateMode(target string, mode string) {
 	c.Unlock()
 }
 
-func NewClient(ctx context.Context, nick string, ident string, realName string, password string, nickservPass string, socket net.Conn, logger *log.Logger, handler MsgHandler, charmap *charmap.Charmap) (*Client, context.CancelFunc) {
+func NewClient(ctx context.Context, nick string, ident string, realName string, password string, nickservPass string, socket net.Conn, logger Logger, handler MsgHandler, charmap *charmap.Charmap) (*Client, context.CancelFunc) {
 	ctx, cancel := context.WithCancel(ctx)
 	c := Client{
 		name:         nick + "@" + socket.RemoteAddr().String(),

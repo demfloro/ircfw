@@ -45,7 +45,7 @@ func (c *Client) serveLoop(ctx context.Context) {
 			return
 		case msg, open := <-c.reads:
 			if !open {
-				c.Log("c.reads closed")
+				c.Debug("c.reads closed")
 				continue
 			}
 			handler, exists := handlers[msg.Cmd()]
@@ -61,7 +61,7 @@ func (c *Client) serveLoop(ctx context.Context) {
 func handleJoinError(msg message) {
 	client := msg.Client()
 	if msg.Cmd() != "473" {
-		client.Log("Got error: %#v", msg)
+		client.Debug("Got error: %#v", msg)
 		return
 	}
 	params := msg.Params()
@@ -86,14 +86,14 @@ func handleMyInfo(msg message) {
 		client.Unlock()
 		return
 	}
-	client.Log("RPL_MYINFO param length is not 5")
+	client.Debug("RPL_MYINFO param length is not 5")
 }
 
 func handleWhois(msg message) {
 }
 
 func logHandler(msg message) {
-	msg.Client().Log("Unhandled: %#v", msg)
+	msg.Client().Debug("Unhandled: %#v", msg)
 }
 
 func handleMOTD(msg message) {
@@ -129,7 +129,7 @@ func handleModeChannel(msg message) {
 func handleMode(msg message) {
 	params := msg.Params()
 	if len(params) < 2 {
-		msg.Client().Log("Got MODE with less than 2 parameters: %#v", msg)
+		msg.Client().Logf("Got MODE with less than 2 parameters: %#v", msg)
 		return
 	}
 	if isNick(params[0]) {
@@ -147,7 +147,7 @@ func handleHostname(msg message) {
 }
 
 func handleNotice(msg message) {
-	msg.Client().Log("Notice from %q: %q", msg.Nick(), msg.Text())
+	msg.Client().Debug("Notice from %q: %q", msg.Nick(), msg.Text())
 }
 
 func handlePing(msg message) {
@@ -158,7 +158,7 @@ func send(ctx context.Context, msg Msg, channel chan<- Msg) {
 	select {
 	case channel <- msg:
 	case <-ctx.Done():
-		msg.Log("timed out to send: %#v", msg)
+		msg.Debug("timed out to send: %#v", msg)
 	}
 }
 
@@ -175,12 +175,12 @@ func handlePrivmsg(msg message) {
 		return
 	}
 	if !isChannel(chanName) {
-		msg.Client().Log("Got PRIVMSG for invalid channel %q: %#v", chanName, msg)
+		msg.Client().Debug("Got PRIVMSG for invalid channel %q: %#v", chanName, msg)
 		return
 	}
 	channel := msg.Channel()
 	if channel == nil {
-		msg.Client().Log("Got unexpected PRIVMSG for %q: %#v", chanName, msg)
+		msg.Client().Debug("Got unexpected PRIVMSG for %q: %#v", chanName, msg)
 		return
 	}
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
@@ -203,7 +203,7 @@ func handleNick(msg message) {
 }
 
 func handleError(msg message) {
-	msg.Client().Log("Error from server: %#v", msg)
+	msg.Client().Logf("Error from server: %#v", msg)
 }
 
 func handleISupport(msg message) {
@@ -234,7 +234,7 @@ func handleJoin(msg message) {
 		if channel := msg.Client().fetchChannel(chanName); channel != nil {
 			channel.start()
 		} else {
-			msg.Client().Log("Unsolicited JOIN for %q", chanName)
+			msg.Client().Debug("Unsolicited JOIN for %q", chanName)
 		}
 		msg.Client().Unlock()
 		return
@@ -243,7 +243,7 @@ func handleJoin(msg message) {
 		channel.names.Add(msgnick)
 		return
 	}
-	msg.Client().Log("Got unsolicited notification about join: %#v", msg)
+	msg.Client().Debug("Got unsolicited notification about join: %#v", msg)
 }
 
 func handleTopic(msg message) {
