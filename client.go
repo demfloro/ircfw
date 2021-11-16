@@ -55,7 +55,8 @@ func (c *Client) readLoop(ctx context.Context) {
 		}
 	}
 	if err := in.Err(); err != nil {
-		c.Debug("Error in readLoop: %w", err)
+		c.err = err
+		c.quit()
 		return
 	}
 }
