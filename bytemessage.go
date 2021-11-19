@@ -49,6 +49,9 @@ func parseByteMessage(line []byte, deadline time.Time, client *Client) (msg mess
 		prefix, line = bytepop(line[1:], []byte(" "))
 		cmd, line = bytepop(line, []byte(" "))
 		params = parseByteParams(line)
+	} else {
+		cmd, line = bytepop(line, []byte(" "))
+		params = parseByteParams(line)
 	}
 	msg = bytemessage{
 		prefix:   prefix,
@@ -144,6 +147,9 @@ func (m bytemessage) Client() *Client {
 }
 
 func (m bytemessage) Text() string {
+	if len(m.params) < 2 {
+		return ""
+	}
 	return decode(m.params[1], m.Client().charmap)
 }
 

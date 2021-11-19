@@ -3,7 +3,6 @@ package ircfw
 import (
 	"bufio"
 	"context"
-	"fmt"
 	"time"
 )
 
@@ -14,7 +13,7 @@ func (c *Client) writeLoop(ctx context.Context) {
 	for {
 		select {
 		case <-ctx.Done():
-			c.Logf("writeLoop: %q", ctx.Err())
+			c.Debug("writeLoop: %q", ctx.Err())
 			return
 		case msg, open := <-c.writes:
 			if !open {
@@ -52,7 +51,7 @@ func (c *Client) readLoop(ctx context.Context) {
 		}
 		select {
 		case <-ctx.Done():
-			c.Logf("readLoop: %q", ctx.Err())
+			c.Debug("readLoop: %q", ctx.Err())
 			return
 		case c.reads <- msg:
 			c.Lock()
@@ -71,13 +70,13 @@ func (c *Client) readLoop(ctx context.Context) {
 // Meant to run in separate goroutine
 func (c *Client) pingLoop(ctx context.Context) {
 	defer c.wg.Done()
-	pingFreq := c.aliveTimeout / 4
+	pingFreq := c.aliveTimeout / 3
 	ticker := time.NewTicker(pingFreq)
 	for {
 		select {
 		case <-ctx.Done():
 			ticker.Stop()
-			c.Logf("pingLoop: %q", ctx.Err())
+			c.Debug("pingLoop: %q", ctx.Err())
 			return
 		case now := <-ticker.C:
 			c.Lock()
@@ -143,7 +142,7 @@ func (c *Client) joinChannel(ctx context.Context, chanName string) (channel *Cha
 		delete(c.channels, chanName)
 		channel.kill()
 		c.Unlock()
-		return nil, fmt.Errorf("Timed out to join %q", chanName)
+		return nil, ctx.Err()
 	case <-channel.quit:
 		return nil, channel.err
 	case <-channel.started:

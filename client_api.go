@@ -27,7 +27,9 @@ func (c *Client) Wait() error {
 
 func (c *Client) Quit(reason string) {
 	c.sendMessage("QUIT", []string{reason})
-	safeClose(c.started)
+	c.Lock()
+	c.killChannels()
+	c.Unlock()
 	c.private.kill()
 	c.quit()
 }

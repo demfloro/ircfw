@@ -43,11 +43,12 @@ func (c *Client) serveLoop(ctx context.Context) {
 	for {
 		select {
 		case <-ctx.Done():
+			c.Debug("serveLoop: %q", ctx.Err())
 			return
 		case msg, open := <-c.reads:
 			if !open {
-				c.Debug("c.reads closed")
-				continue
+				c.Debug("c.reads closed, quitting")
+				c.quit()
 			}
 			handler, exists := handlers[msg.Cmd()]
 			if exists {
