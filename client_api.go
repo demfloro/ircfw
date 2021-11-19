@@ -27,12 +27,6 @@ func (c *Client) Wait() error {
 
 func (c *Client) Quit(reason string) {
 	c.sendMessage("QUIT", []string{reason})
-	c.Lock()
-	for name, channel := range c.channels {
-		channel.kill()
-		delete(c.channels, name)
-	}
-	c.Unlock()
 	safeClose(c.started)
 	c.private.kill()
 	c.quit()
@@ -128,7 +122,11 @@ func (c *Client) UpdateMode(target string, mode string) {
 }
 
 func NewClient(ctx context.Context, nick string, ident string, realName string, password string, nickservPass string, socket net.Conn, logger Logger, handler MsgHandler, charmap *charmap.Charmap) (*Client, context.CancelFunc) {
-	ctx, cancel := context.WithCancel(ctx)
+	ctx, ctxcancel := context.WithCancel(ctx)
+	cancel := func() {
+		socket.Close()
+		ctxcancel()
+	}
 	c := Client{
 		name:         nick + "@" + socket.RemoteAddr().String(),
 		nickservPass: nickservPass,
@@ -142,12 +140,14 @@ func NewClient(ctx context.Context, nick string, ident string, realName string, 
 		handler:      handler,
 		started:      make(chan struct{}),
 		quit:         cancel,
+		aliveTimeout: 2 * time.Minute,
 	}
-	c.wg.Add(4)
+	c.wg.Add(5)
 	go c.serveLoop(ctx)
 	go c.serveLoop(ctx)
 	go c.writeLoop(ctx)
 	go c.readLoop(ctx)
+	go c.pingLoop(ctx)
 	c.sendPass(password)
 	c.sendNick(nick)
 	c.sendUser(ident, realName)

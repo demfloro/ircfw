@@ -135,7 +135,6 @@ func drainHandler(m Msg) {
 			client.Quit("Requested by privmsg")
 		}
 		if lowcase(line) == "!status" {
-			m.Reply(ctx, []string{"\x03\x03teststring\x03"})
 			return
 		}
 		if lowcase(line) == "!topic" {

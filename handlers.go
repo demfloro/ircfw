@@ -12,6 +12,7 @@ type handler func(message)
 var (
 	handlers = map[string]handler{
 		"PING":    handlePing,
+		"PONG":    handlePong,
 		"PRIVMSG": handlePrivmsg,
 		"NOTICE":  handleNotice,
 		"ERROR":   handleError,
@@ -90,6 +91,9 @@ func handleMyInfo(msg message) {
 }
 
 func handleWhois(msg message) {
+}
+
+func handlePong(msg message) {
 }
 
 func logHandler(msg message) {

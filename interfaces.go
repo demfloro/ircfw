@@ -25,24 +25,26 @@ type Channel struct {
 }
 
 type Client struct {
-	// the mutex protects prefix, mode, chanModes, userModes, channels, params
+	wg            sync.WaitGroup
+	socket        net.Conn
+	reads, writes chan message
+	private       *Channel
+	started       chan struct{}
+	quit          context.CancelFunc
+	err           error
+	handler       MsgHandler
+	charmap       *charmap.Charmap
+	logger        Logger
+	aliveTimeout  time.Duration
 	sync.Mutex
+	// fields below are protected by the mutex
+	lastMessage          time.Time
 	name, prefix, mode   string
 	chanModes, userModes string
 	nickservPass         string
 	motd                 []string
-	wg                   sync.WaitGroup
-	socket               net.Conn
-	logger               Logger
-	reads, writes        chan message
 	channels             map[string]*Channel
-	private              *Channel
-	handler              MsgHandler
-	charmap              *charmap.Charmap
 	params               map[string]string
-	started              chan struct{}
-	err                  error
-	quit                 context.CancelFunc
 }
 
 type Msg interface {

@@ -14,6 +14,7 @@ func (c *Client) writeLoop(ctx context.Context) {
 	for {
 		select {
 		case <-ctx.Done():
+			c.Logf("writeLoop: %q", ctx.Err())
 			return
 		case msg, open := <-c.writes:
 			if !open {
@@ -43,21 +44,53 @@ func (c *Client) readLoop(ctx context.Context) {
 	for in.Scan() {
 		line := in.Bytes()
 		c.Debug("read raw: %q", string(line))
-		msg, err := parseMessage(line, time.Now(), c)
+		t := time.Now()
+		msg, err := parseMessage(line, t, c)
 		if err != nil {
 			c.Logf("Failed to parse: %q, err: %w", line, err)
 			continue
 		}
 		select {
 		case <-ctx.Done():
+			c.Logf("readLoop: %q", ctx.Err())
 			return
 		case c.reads <- msg:
+			c.Lock()
+			c.lastMessage = t
+			c.Unlock()
 		}
 	}
 	if err := in.Err(); err != nil {
+		c.Logf("readLoop: %q", err)
 		c.err = err
 		c.quit()
 		return
+	}
+}
+
+// Meant to run in separate goroutine
+func (c *Client) pingLoop(ctx context.Context) {
+	defer c.wg.Done()
+	pingFreq := c.aliveTimeout / 4
+	ticker := time.NewTicker(pingFreq)
+	for {
+		select {
+		case <-ctx.Done():
+			ticker.Stop()
+			c.Logf("pingLoop: %q", ctx.Err())
+			return
+		case now := <-ticker.C:
+			c.Lock()
+			if elapsed := now.Sub(c.lastMessage); elapsed >= c.aliveTimeout {
+				c.Logf("Server timed out")
+				c.Unlock()
+				c.quit()
+				continue
+			} else if elapsed >= pingFreq {
+				c.ping([]string{c.extractNick()})
+			}
+			c.Unlock()
+		}
 	}
 }
 
@@ -138,6 +171,17 @@ func (c *Client) initPrivate() {
 	c.private.start()
 }
 
+func (c *Client) ping(params []string) {
+	c.sendMessage("PING", params)
+}
+
 func (c *Client) pong(params []string) {
 	c.sendMessage("PONG", params)
+}
+
+func (c *Client) killChannels() {
+	for name, channel := range c.channels {
+		channel.kill()
+		delete(c.channels, name)
+	}
 }
