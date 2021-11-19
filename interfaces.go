@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"golang.org/x/text/encoding/charmap"
+	"gopkg.in/tomb.v2"
 )
 
 const MAXMSGSIZE = 512
@@ -25,12 +26,11 @@ type Channel struct {
 }
 
 type Client struct {
-	wg            sync.WaitGroup
+	tomb          *tomb.Tomb
 	socket        net.Conn
 	reads, writes chan message
 	private       *Channel
 	started       chan struct{}
-	quit          context.CancelFunc
 	err           error
 	handler       MsgHandler
 	charmap       *charmap.Charmap

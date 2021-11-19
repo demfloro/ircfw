@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"golang.org/x/text/encoding/charmap"
+	"gopkg.in/tomb.v2"
 )
 
 func (c *Client) Debug(format string, params ...interface{}) {
@@ -18,11 +19,7 @@ func (c *Client) Logf(format string, params ...interface{}) {
 }
 
 func (c *Client) Wait() error {
-	c.wg.Wait()
-	if c.err != nil {
-		return c.err
-	}
-	return nil
+	return c.tomb.Wait()
 }
 
 func (c *Client) Quit(reason string) {
@@ -31,7 +28,7 @@ func (c *Client) Quit(reason string) {
 	c.killChannels()
 	c.Unlock()
 	c.private.kill()
-	c.quit()
+	c.tomb.Kill(fmt.Errorf("user request: %q", reason))
 }
 
 func (c *Client) Join(ctx context.Context, chanName string) (*Channel, error) {
@@ -124,12 +121,9 @@ func (c *Client) UpdateMode(target string, mode string) {
 }
 
 func NewClient(ctx context.Context, nick string, ident string, realName string, password string, nickservPass string, socket net.Conn, logger Logger, handler MsgHandler, charmap *charmap.Charmap) (*Client, context.CancelFunc) {
-	ctx, ctxcancel := context.WithCancel(ctx)
-	cancel := func() {
-		socket.Close()
-		ctxcancel()
-	}
+	t, _ := tomb.WithContext(ctx)
 	c := Client{
+		tomb:         t,
 		name:         nick + "@" + socket.RemoteAddr().String(),
 		nickservPass: nickservPass,
 		socket:       socket,
@@ -141,18 +135,20 @@ func NewClient(ctx context.Context, nick string, ident string, realName string, 
 		charmap:      charmap,
 		handler:      handler,
 		started:      make(chan struct{}),
-		quit:         cancel,
 		aliveTimeout: 2 * time.Minute,
 	}
-	c.wg.Add(5)
-	go c.serveLoop(ctx)
-	go c.serveLoop(ctx)
-	go c.writeLoop(ctx)
-	go c.readLoop(ctx)
-	go c.pingLoop(ctx)
+	c.tomb.Go(c.serveLoop)
+	c.tomb.Go(c.serveLoop)
+	c.tomb.Go(c.writeLoop)
+	c.tomb.Go(c.readLoop)
+	c.tomb.Go(c.pingLoop)
 	c.sendPass(password)
 	c.sendNick(nick)
 	c.sendUser(ident, realName)
 	c.initPrivate()
+	cancel := func() {
+		t.Kill(fmt.Errorf("cancelled"))
+		socket.Close()
+	}
 	return &c, cancel
 }

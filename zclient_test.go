@@ -114,7 +114,7 @@ func TestNewClient(t *testing.T) {
 	if err != nil {
 		logger.Log(err)
 	}
-	client.Wait()
+	log.Printf("err: %q", client.Wait())
 }
 
 func drainHandler(m Msg) {

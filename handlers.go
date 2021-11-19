@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"strings"
 	"time"
+
+	"gopkg.in/tomb.v2"
 )
 
 type handler func(message)
@@ -37,18 +39,16 @@ var (
 )
 
 // Meant to run in separate goroutine
-func (c *Client) serveLoop(ctx context.Context) {
-	defer c.wg.Done()
-
+func (c *Client) serveLoop() error {
 	for {
 		select {
-		case <-ctx.Done():
-			c.Debug("serveLoop: %q", ctx.Err())
-			return
+		case <-c.tomb.Dying():
+			c.Debug("serveLoop dying")
+			return tomb.ErrDying
 		case msg, open := <-c.reads:
 			if !open {
 				c.Debug("c.reads closed, quitting")
-				c.quit()
+				return ErrReadsClosed
 			}
 			handler, exists := handlers[msg.Cmd()]
 			if exists {
@@ -163,32 +163,36 @@ func send(ctx context.Context, msg Msg, channel chan<- Msg) {
 	select {
 	case channel <- msg:
 	case <-ctx.Done():
-		msg.Debug("timed out to send: %#v", msg)
+		msg.Debug("error sending message: %q", ctx.Err())
 	}
 }
 
 func handlePrivmsgPrivate(msg message) {
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	client := msg.Client()
+	ctx := client.tomb.Context(nil)
+	ctx, cancel := context.WithTimeout(ctx, 10*time.Second)
 	defer cancel()
-	send(ctx, msg.Msg(), msg.Client().private.receive)
+	send(ctx, msg.Msg(), client.private.receive)
 }
 
 func handlePrivmsg(msg message) {
 	chanName := msg.Params()[0]
+	client := msg.Client()
 	if isNick(chanName) {
 		handlePrivmsgPrivate(msg)
 		return
 	}
 	if !isChannel(chanName) {
-		msg.Client().Debug("Got PRIVMSG for invalid channel %q: %#v", chanName, msg)
+		client.Debug("Got PRIVMSG for invalid channel %q: %#v", chanName, msg)
 		return
 	}
 	channel := msg.Channel()
 	if channel == nil {
-		msg.Client().Debug("Got unexpected PRIVMSG for %q: %#v", chanName, msg)
+		client.Debug("Got unexpected PRIVMSG for %q: %#v", chanName, msg)
 		return
 	}
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	ctx := client.tomb.Context(nil)
+	ctx, cancel := context.WithTimeout(ctx, 10*time.Second)
 	defer cancel()
 	send(ctx, msg.Msg(), channel.receive)
 }

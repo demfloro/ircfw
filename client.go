@@ -3,22 +3,31 @@ package ircfw
 import (
 	"bufio"
 	"context"
+	"errors"
 	"time"
+
+	"gopkg.in/tomb.v2"
+)
+
+var (
+	ErrReadsClosed  = errors.New("c.reads closed")
+	ErrWritesClosed = errors.New("c.writes closed")
+	ErrTimeout      = errors.New("server timed out")
 )
 
 // Meant to run in separate goroutine
-func (c *Client) writeLoop(ctx context.Context) {
+func (c *Client) writeLoop() error {
 	var zero time.Time
-	defer c.wg.Done()
 	for {
 		select {
-		case <-ctx.Done():
-			c.Debug("writeLoop: %q", ctx.Err())
-			return
+		case <-c.tomb.Dying():
+			c.Debug("writeLoop dying")
+			return tomb.ErrDying
 		case msg, open := <-c.writes:
 			if !open {
 				c.Debug("c.writes closed")
-				return
+				c.socket.Close()
+				return ErrWritesClosed
 			}
 			deadline := msg.Deadline()
 			raw := msg.Export()
@@ -26,8 +35,8 @@ func (c *Client) writeLoop(ctx context.Context) {
 			c.socket.SetWriteDeadline(deadline)
 			_, err := c.socket.Write(raw)
 			if err != nil {
-				c.err = err
-				c.quit()
+				c.Debug("error writing to socket: %q", err)
+				return err
 			}
 			c.socket.SetWriteDeadline(zero)
 		}
@@ -35,8 +44,7 @@ func (c *Client) writeLoop(ctx context.Context) {
 }
 
 // Meant to run in separate goroutine
-func (c *Client) readLoop(ctx context.Context) {
-	defer c.wg.Done()
+func (c *Client) readLoop() error {
 	in := bufio.NewScanner(c.socket)
 	in.Buffer(make([]byte, MAXMSGSIZE), MAXMSGSIZE)
 	in.Split(scanMsg)
@@ -50,41 +58,35 @@ func (c *Client) readLoop(ctx context.Context) {
 			continue
 		}
 		select {
-		case <-ctx.Done():
-			c.Debug("readLoop: %q", ctx.Err())
-			return
+		case <-c.tomb.Dying():
+			c.Debug("readLoop dying")
+			c.socket.Close()
+			return tomb.ErrDying
 		case c.reads <- msg:
 			c.Lock()
 			c.lastMessage = t
 			c.Unlock()
 		}
 	}
-	if err := in.Err(); err != nil {
-		c.Logf("readLoop: %q", err)
-		c.err = err
-		c.quit()
-		return
-	}
+	return in.Err()
 }
 
 // Meant to run in separate goroutine
-func (c *Client) pingLoop(ctx context.Context) {
-	defer c.wg.Done()
+func (c *Client) pingLoop() error {
 	pingFreq := c.aliveTimeout / 3
 	ticker := time.NewTicker(pingFreq)
 	for {
 		select {
-		case <-ctx.Done():
+		case <-c.tomb.Dying():
 			ticker.Stop()
-			c.Debug("pingLoop: %q", ctx.Err())
-			return
+			c.Debug("pingLoop dying")
+			return tomb.ErrDying
 		case now := <-ticker.C:
 			c.Lock()
 			if elapsed := now.Sub(c.lastMessage); elapsed >= c.aliveTimeout {
-				c.Logf("Server timed out")
+				c.Debug("Server timed out")
 				c.Unlock()
-				c.quit()
-				continue
+				return ErrTimeout
 			} else if elapsed >= pingFreq {
 				c.ping([]string{c.extractNick()})
 			}
