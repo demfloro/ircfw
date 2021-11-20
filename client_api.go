@@ -68,7 +68,8 @@ func (c *Client) SetNick(nick string) {
 }
 
 func (c *Client) sendMessage(cmd string, params []string) {
-	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+	ctx := c.tomb.Context(nil)
+	ctx, cancel := context.WithTimeout(ctx, time.Second)
 	c.sendMessageContext(ctx, cmd, params)
 	cancel()
 }
