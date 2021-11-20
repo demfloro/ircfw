@@ -171,8 +171,8 @@ func handlePrivmsgPrivate(msg message) {
 	client := msg.Client()
 	ctx := client.tomb.Context(nil)
 	ctx, cancel := context.WithTimeout(ctx, 10*time.Second)
-	defer cancel()
 	send(ctx, msg.Msg(), client.private.receive)
+	cancel()
 }
 
 func handlePrivmsg(msg message) {
@@ -193,8 +193,8 @@ func handlePrivmsg(msg message) {
 	}
 	ctx := client.tomb.Context(nil)
 	ctx, cancel := context.WithTimeout(ctx, 10*time.Second)
-	defer cancel()
 	send(ctx, msg.Msg(), channel.receive)
+	cancel()
 }
 
 func handleNick(msg message) {
