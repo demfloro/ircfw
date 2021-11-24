@@ -14,12 +14,8 @@ import (
 )
 
 const (
-	nick     = "ircfw"
-	user     = "user"
 	proto    = "tcp"
-	realname = "unrealname"
 	server   = "irc.demsh.org:6697"
-	password = ""
 	jchannel = "#ircfw-test"
 	timeout  = 10
 )
@@ -106,7 +102,7 @@ func TestNewClient(t *testing.T) {
 	//client := NewClient(nick, user, realname, password, mock, logger)
 	charmap := charmap.Windows1251
 	rootCtx := context.Background()
-	client, cancelClient := NewClient(rootCtx, nick, user, realname, password, "", socket, logger, drainHandler, charmap)
+	client, cancelClient := NewClient(Context(rootCtx), Socket(socket), SetLogger(logger), Handler(drainHandler), Charmap(charmap))
 	defer cancelClient()
 	ctx, cancel := context.WithTimeout(rootCtx, 5*time.Second)
 	_, err = client.Join(ctx, jchannel)

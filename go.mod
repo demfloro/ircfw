@@ -7,4 +7,4 @@ require (
 	gopkg.in/tomb.v2 v2.0.0-20161208151619-d5d1b5820637
 )
 
-require golang.org/x/net v0.0.0-20211118161319-6a13c67c3ce4 // indirect
+require golang.org/x/net v0.0.0-20211123203042-d83791d6bcd9 // indirect

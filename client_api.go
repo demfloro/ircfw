@@ -3,10 +3,8 @@ package ircfw
 import (
 	"context"
 	"fmt"
-	"net"
 	"time"
 
-	"golang.org/x/text/encoding/charmap"
 	"gopkg.in/tomb.v2"
 )
 
@@ -121,20 +119,24 @@ func (c *Client) UpdateMode(target string, mode string) {
 	c.Unlock()
 }
 
-func NewClient(ctx context.Context, nick string, ident string, realName string, password string, nickservPass string, socket net.Conn, logger Logger, handler MsgHandler, charmap *charmap.Charmap) (*Client, context.CancelFunc) {
-	t, _ := tomb.WithContext(ctx)
+func NewClient(opts ...Option) (*Client, context.CancelFunc) {
+	conf := defaultConfig()
+	for _, opt := range opts {
+		opt(&conf)
+	}
+	t, _ := tomb.WithContext(conf.context)
 	c := Client{
 		tomb:         t,
-		name:         nick + "@" + socket.RemoteAddr().String(),
-		nickservPass: nickservPass,
-		socket:       socket,
-		logger:       logger,
+		name:         conf.nick + "@" + conf.socket.RemoteAddr().String(),
+		nickservPass: conf.nickservPass,
+		socket:       conf.socket,
+		logger:       conf.logger,
 		channels:     make(map[string]*Channel),
 		reads:        make(chan message, 32),
 		writes:       make(chan message, 32),
 		params:       make(map[string]string),
-		charmap:      charmap,
-		handler:      handler,
+		charmap:      conf.charmap,
+		handler:      conf.handler,
 		started:      make(chan struct{}),
 		aliveTimeout: 2 * time.Minute,
 	}
@@ -143,13 +145,13 @@ func NewClient(ctx context.Context, nick string, ident string, realName string, 
 	c.tomb.Go(c.writeLoop)
 	c.tomb.Go(c.readLoop)
 	c.tomb.Go(c.pingLoop)
-	c.sendPass(password)
-	c.sendNick(nick)
-	c.sendUser(ident, realName)
+	c.sendPass(conf.password)
+	c.sendNick(conf.nick)
+	c.sendUser(conf.ident, conf.realName)
 	c.initPrivate()
 	cancel := func() {
 		t.Kill(fmt.Errorf("cancelled"))
-		socket.Close()
+		c.socket.Close()
 	}
 	return &c, cancel
 }

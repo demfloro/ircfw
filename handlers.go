@@ -123,6 +123,9 @@ func handleModeNick(msg message) {
 	params := msg.Params()
 	target, mode := params[0], params[1]
 	client.UpdateMode(target, mode)
+	if client.nickservPass == "" {
+		return
+	}
 	client.sendMessage("PRIVMSG", []string{"NickServ", "identify " + client.nickservPass})
 }
 
