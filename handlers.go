@@ -230,7 +230,7 @@ func handleISupport(msg message) {
 			msg.Client().params[splitted[0]] = splitted[1]
 			continue
 		}
-		if strings.Index(splitted[0], " ") == -1 {
+		if !strings.Contains(splitted[0], " ") {
 			msg.Client().params[splitted[0]] = ""
 		}
 	}

@@ -62,7 +62,7 @@ func (s *set) String() string {
 	var slice []string
 	s.Lock()
 	defer s.Unlock()
-	for k, _ := range s.s {
+	for k := range s.s {
 		slice = append(slice, k)
 	}
 	return fmt.Sprintf("set(%q)", strings.Join(slice, ", "))

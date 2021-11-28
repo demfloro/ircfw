@@ -6,11 +6,12 @@ import (
 	"context"
 	"crypto/tls"
 	"errors"
-	"golang.org/x/text/encoding/charmap"
 	"log"
 	"log/syslog"
 	"testing"
 	"time"
+
+	"golang.org/x/text/encoding/charmap"
 )
 
 const (

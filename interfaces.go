@@ -31,7 +31,6 @@ type Client struct {
 	reads, writes chan message
 	private       *Channel
 	started       chan struct{}
-	err           error
 	handler       MsgHandler
 	charmap       *charmap.Charmap
 	logger        Logger

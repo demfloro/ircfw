@@ -32,16 +32,14 @@ func (c *Client) Quit(reason string) {
 func (c *Client) Join(ctx context.Context, chanName string) (*Channel, error) {
 	err := validateChannel(chanName)
 	if err != nil {
-		return nil, fmt.Errorf("Invalid channel name: %w", err)
+		return nil, fmt.Errorf("invalid channel name: %w", err)
 	}
 	if channel := c.fetchChannel(chanName); channel != nil && channel.isStarted() {
 		return channel, nil
 	}
 	// Stall until initial message exchange with server finishes
 	// without this client tries to join too early and server rejects it
-	select {
-	case <-c.started:
-	}
+	<-c.started
 	return c.joinChannel(ctx, chanName)
 }
 
