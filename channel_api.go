@@ -46,6 +46,13 @@ func (c *Channel) Part() {
 	close(c.quit)
 }
 
+func (c *Channel) Say(content string) {
+	if content == "" {
+		return
+	}
+	c.send <- NewIRCMsg([]string{content}, c, c.client, false)
+}
+
 func (c *Channel) Logf(format string, params ...interface{}) {
 	c.client.Logf(format, params...)
 }

@@ -17,7 +17,7 @@ type ircMsg struct {
 	utf8     bool
 }
 
-func NewIRCMsg(text []string, channel *Channel, client *Client, utf8 bool, deadline time.Time) Msg {
+func NewIRCMsg(text []string, channel *Channel, client *Client, utf8 bool) Msg {
 	return ircMsg{
 		time:     time.Now(),
 		deadline: time.Time{},
