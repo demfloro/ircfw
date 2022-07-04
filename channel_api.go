@@ -50,7 +50,8 @@ func (c *Channel) Say(content string) {
 	if content == "" {
 		return
 	}
-	c.send <- NewIRCMsg([]string{content}, c, c.client, false)
+	// BUG: implement asking client whenever UTF8 should be used
+	c.send <- NewIRCMsg([]string{content}, c, c.client, true)
 }
 
 func (c *Channel) Logf(format string, params ...interface{}) {
