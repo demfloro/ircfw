@@ -14,17 +14,15 @@ type ircMsg struct {
 	text     []string
 	channel  *Channel
 	client   *Client
-	utf8     bool
 }
 
-func NewIRCMsg(text []string, channel *Channel, client *Client, utf8 bool) Msg {
+func NewIRCMsg(text []string, channel *Channel, client *Client) Msg {
 	return ircMsg{
 		time:     time.Now(),
 		deadline: time.Time{},
 		text:     text,
 		channel:  channel,
 		client:   client,
-		utf8:     utf8,
 	}
 }
 
@@ -89,7 +87,6 @@ func (m ircMsg) Reply(ctx context.Context, text []string) {
 		text:     text,
 		channel:  m.channel,
 		client:   m.client,
-		utf8:     m.utf8,
 	}
 	select {
 	case <-ctx.Done():
@@ -100,7 +97,7 @@ func (m ircMsg) Reply(ctx context.Context, text []string) {
 }
 
 func (m ircMsg) String() string {
-	return fmt.Sprintf("ircfw.ircMsg{time: %q, prefix: %q, channel: %q, client: %q, utf8: %v, text %q}", m.time.Format("2006-01-02 15:04:05"), m.prefix, m.channel.name, m.client.name, m.utf8, m.text)
+	return fmt.Sprintf("ircfw.ircMsg{time: %q, prefix: %q, channel: %q, client: %q, text %q}", m.time.Format("2006-01-02 15:04:05"), m.prefix, m.channel.name, m.client.name, m.text)
 }
 
 func (m ircMsg) Messages() (messages []message) {
@@ -108,14 +105,8 @@ func (m ircMsg) Messages() (messages []message) {
 	if m.IsPrivate() {
 		chanName = m.Nick()
 	}
-	if !m.utf8 || m.client.charmap != nil {
-		for _, line := range m.WrappedText() {
-			messages = append(messages, newMessage([]byte("PRIVMSG"), [][]byte{[]byte(chanName), encode(line, m.client.charmap)}, m.deadline, m.client))
-		}
-	} else {
-		for _, line := range m.WrappedText() {
-			messages = append(messages, newMessage([]byte("PRIVMSG"), [][]byte{[]byte(chanName), []byte(line)}, m.deadline, m.client))
-		}
+	for _, line := range m.WrappedText() {
+		messages = append(messages, newMessage([]byte("PRIVMSG"), [][]byte{[]byte(chanName), []byte(line)}, m.deadline, m.client))
 	}
 	return
 }

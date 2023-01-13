@@ -106,7 +106,6 @@ func (m utf8message) Msg() Msg {
 		text:     []string{strings.TrimSpace(m.params[1])},
 		channel:  channel,
 		client:   m.client,
-		utf8:     true,
 	}
 }
 

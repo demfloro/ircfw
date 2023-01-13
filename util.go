@@ -101,7 +101,7 @@ func dropCRLF(data []byte) []byte {
 	return data
 }
 
-//Split function for Scanner interface
+// Split function for Scanner interface
 func scanMsg(data []byte, atEOF bool) (advance int, token []byte, err error) {
 	if atEOF && len(data) == 0 {
 		return 0, nil, nil
